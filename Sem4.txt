@@ -1,0 +1,266 @@
+Реализовать программу 1-го практического задания с помощью биномиального коэффициента.
+Данные на вход: Два целых числа N и M
+Данные на выход: Одно целое число – количество вариантов
+
+Пример №1
+Данные на вход: 10 5
+Данные на выход: 252
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int binomial_coefficient(int n, int k) {
+    if (k > n) {
+        return 0;
+    }
+
+    int num = 1;
+    for (int i = 1; i <= k; i++) {
+        num *= n--;
+        num /= i;
+    }
+
+    return num;
+}
+
+int main() {
+    int n, k;
+
+    printf("Enter the value of n: ");
+    scanf("%d", &n);
+
+    printf("Enter the value of k: ");
+    scanf("%d", &k);
+
+    int result = binomial_coefficient(n, k);
+
+    printf("The binomial coefficient of %d and %d is: %d\n", n, k, result);
+
+    return 0;
+}
+
+gcc -std=c99 -Wall -Wextra -O2 -pedantic binomial.c -o binomial
+./binomial
+
+Написать алгоритм перевода из инфиксной записи в обратную польскую. Для его реализации нужны данные по приоритетам операций. Реализовать алгоритм, используя побитовые операции (&, |, ^).
+
+Пример №1
+Данные на вход: ( 3 & 5 ) ^ 4 | 9
+Данные на выход: 3 5 & 4 ^ 9 |
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_SIZE 100
+
+int precedence(char op) {
+    switch (op) {
+        case '&':
+            return 1;
+        case '|':
+            return 2;
+        case '^':
+            return 3;
+    }
+    return -1;
+}
+
+void reverse(char *str) {
+    int start = 0;
+    int end = strlen(str) - 1;
+
+    while (start < end) {
+        char temp = str[start];
+        str[start] = str[end];
+        str[end] = temp;
+
+        start++;
+        end--;
+    }
+}
+
+int is_operator(char c) {
+    return (c == '&' || c == '|' || c == '^');
+}
+
+void infix_to_postfix(const char *infix, char *postfix) {
+    int top = -1;
+    char stack[MAX_SIZE];
+
+    while (*infix != '\0') {
+        if (*infix >= '0' && *infix <= '9') {
+            // Append digit to the postfix string
+            strncat(postfix, infix, 1);
+        } else if (is_operator(*infix)) {
+            // Check if the stack is empty or not
+            while (top >= 0 && precedence(stack[top]) >= precedence(*infix)) {
+                postfix[strlen(postfix)] = stack[top];
+                top--;
+            }
+
+            // Push the current operator to the stack
+            stack[++top] = *infix;
+        } else if (*infix == '(') {
+            // Push the left parenthesis to the stack
+            stack[++top] = *infix;
+        } else if (*infix == ')') {
+            // Pop and append the operators from the stack until left parenthesis is found
+            while (top >= 0 && stack[top] != '(') {
+                postfix[strlen(postfix)] = stack[top];
+                top--;
+            }
+
+            // Discard the left parenthesis
+            top--;
+        }
+
+        infix++;
+    }
+
+    // Append remaining operators from the stack to the postfix string
+    while (top >= 0) {
+        postfix[strlen(postfix)] = stack[top];
+        top--;
+    }
+
+    reverse(postfix);
+}
+
+int main() {
+    const char infix_expr[] = "( 3 & 5 ) ^ 4 | 9";
+    char postfix_expr[MAX_SIZE];
+
+    infix_to_postfix(infix_expr, postfix_expr);
+
+    printf("Postfix expression: %s\n", postfix_expr);
+
+    return 0;
+}
+
+/*
+
+Реализовать программу 3-го практического задания более эффективным способом со сложностью О(n) (см. код в лекции).
+
+Пример №1
+Данные на вход:
+
+don't_panic
+nick_is_a_mastodon
+Данные на выход: 3
+
+Оптимизированная версия использует хэш-таблицу для хранения уникальных строк и их суффиксов, 
+что позволяет избежать повторной проверки существования строк в массиве inputs. Это уменьшает 
+время работы алгоритма с O(n^3) до O(n^2), где n это количество входных строк.
+
+*/
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <unordered_map>
+
+#define MAX_INPUTS 100
+#define MAX_LEN 100
+
+int count_prefixes_and_suffixes(const char *inputs[], int size) {
+    int count = 0;
+    int len;
+    std::unordered_map<std::string, int> hash_table;
+
+    // Precompute hash table for inputs
+    for (int i = 0; i < size; i++) {
+        len = strlen(inputs[i]);
+        hash_table[inputs[i]] = 1;
+
+        // Precompute suffixes
+        for (int j = 1; j < len; j++) {
+            hash_table[std::string(inputs[i] + j, len - j)] = 1;
+        }
+    }
+
+    // Count prefixes and suffixes
+    for (int i = 0; i < size; i++) {
+        len = strlen(inputs[i]);
+
+        // Count prefixes
+        for (int j = 1; j < len; j++) {
+            if (hash_table.find(std::string(inputs[i], j)) != hash_table.end()) {
+                count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+int main() {
+    const char *inputs[] = {"don't_panic", "nick_is_a_mastodon", "in_a_galaxy"};
+
+    int count = count_prefixes_and_suffixes(inputs, sizeof(inputs) / sizeof(inputs[0]));
+
+    printf("Количество общих префиксов и суффиксов: %d\n", count);
+
+    return 0;
+}
+
+g++ -std=c++11 -O2 -pedantic prefix_suffix_counter_optimized.c -o prefix_suffix_counter_optimized
+./prefix_suffix_counter_optimized
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_INPUTS 100
+#define MAX_LEN 100
+
+int count_prefixes_and_suffixes(const char *inputs[], int size) {
+    int count = 0;
+    int len;
+    char temp1[MAX_LEN], temp2[MAX_LEN];
+
+    for (int i = 0; i < size; i++) {
+        len = strlen(inputs[i]);
+
+        // Подсчет префиксов
+        for (int j = 1; j < len; j++) {
+            strncpy(temp1, inputs[i], j);
+            temp1[j] = '\0';
+            for (int k = 0; k < size; k++) {
+                if (strcmp(temp1, inputs[k]) == 0) {
+                    count++;
+                    break;
+                }
+            }
+        }
+
+        // Подсчет суффиксов
+        strcpy(temp2, inputs[i]);
+        for (int j = 1; j < len; j++) {
+            temp2[len - j] = '\0';
+            for (int k = 0; k < size; k++) {
+                if (strcmp(temp2, inputs[k]) == 0) {
+                    count++;
+                    break;
+                }
+            }
+        }
+    }
+
+    return count;
+}
+
+int main() {
+    const char *inputs[] = {"don't_panic", "nick_is_a_mastodon"};
+
+    int count = count_prefixes_and_suffixes(inputs, sizeof(inputs) / sizeof(inputs[0]));
+
+    printf("Количество общих префиксов и суффиксов: %d\n", count);
+
+    return 0;
+}
+
+gcc -std=c99 -Wall -Wextra -O2 -pedantic prefix_suffix_counter.c -o prefix_suffix_counter
+./prefix_suffix_counter
